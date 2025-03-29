@@ -3,7 +3,6 @@ from fastapi import FastAPI, Request
 from telegram import Update
 from app.config import WEBHOOK_URL
 from app.telegram_bot import (
-    bot,
     telegram_app,
     initialize_bot,
     shutdown_bot,
@@ -13,8 +12,8 @@ from app.telegram_bot import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await bot.delete_webhook()
-    await bot.set_webhook(url=WEBHOOK_URL)
+    await telegram_app.bot.delete_webhook()
+    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
     # Initialize the telegram application
     await initialize_bot()
     yield
@@ -28,6 +27,6 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     data = await request.json()
-    update = Update.de_json(data, bot)
+    update = Update.de_json(data, telegram_app.bot)
     await telegram_app.process_update(update)
     return {"status": "ok"}
