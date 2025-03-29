@@ -1,14 +1,43 @@
 import openai
+import base64
+from typing import Union
+from app.config import OPENAI_API_KEY
 
-def extract_receipt_data(raw_text: str) -> dict:
-    prompt = f"""Extract structured receipt data from this text:
-{raw_text}
+# Initialize the OpenAI client
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+
+def extract_receipt_data(image_data: Union[str, bytes, bytearray]) -> dict:
+    # If the input is a file path (string), read it
+    if isinstance(image_data, str):
+        with open(image_data, "rb") as file:
+            image_data = file.read()
+
+    # Convert image data to base64
+    if isinstance(image_data, (bytes, bytearray)):
+        image_data = base64.b64encode(image_data).decode("utf-8")
+
+    prompt = f"""Extract structured receipt data from this image:
+{image_data}
 
 Return this format:
 {{"vendor": "", "date": "", "total": "", "items": [{{"name": "", "qty": "", "price": ""}}]}}
 """
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+                    },
+                ],
+            }
+        ],
+        max_tokens=300,
     )
-    return eval(response.choices[0].message.content)
+
+    return response.choices[0].message.content
