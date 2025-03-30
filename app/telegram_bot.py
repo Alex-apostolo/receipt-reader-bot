@@ -11,6 +11,7 @@ from app.services.receipt_service import ReceiptService
 from app.handlers.auth_handler import AuthHandler
 from app.handlers.receipt_handler import ReceiptHandler
 from app.handlers.message_handler import MessageHandler
+from app.services.sheets_service import SheetsService
 
 
 class TelegramBot:
@@ -22,11 +23,12 @@ class TelegramBot:
         # Initialize services
         self.google_service = GoogleService()
         self.receipt_service = ReceiptService()
+        self.sheets_service = SheetsService()
 
         # Initialize handlers
         self.auth_handler = AuthHandler(self.bot, self.google_service)
         self.receipt_handler = ReceiptHandler(
-            self.bot, self.google_service, self.receipt_service
+            self.bot, self.google_service, self.receipt_service, self.sheets_service
         )
         self.message_handler = MessageHandler(self.bot, self.google_service)
 

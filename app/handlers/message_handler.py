@@ -10,17 +10,16 @@ class MessageHandler:
         self,
         bot,
         google_service: GoogleService,
-        receipt_service: ReceiptService,
     ):
         self.bot = bot
         self.google_service = google_service
-        self.receipt_service = receipt_service
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages."""
         user_id = str(update.effective_user.id)
+        print(f"User ID: {user_id}")
         if not self.google_service.is_authenticated(user_id):
-            reply_markup = create_auth_keyboard(user_id)
+            reply_markup = create_auth_keyboard(user_id, self.google_service)
             await self.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Please authenticate with Google first using the button below.",

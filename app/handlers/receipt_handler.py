@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from app.services.google_service import GoogleService
 from app.services.receipt_service import ReceiptService
+from app.services.sheets_service import SheetsService
 
 
 class ReceiptHandler:
@@ -10,10 +11,12 @@ class ReceiptHandler:
         bot,
         google_service: GoogleService,
         receipt_service: ReceiptService,
+        sheets_service: SheetsService,
     ):
         self.bot = bot
         self.google_service = google_service
         self.receipt_service = receipt_service
+        self.sheets_service = sheets_service
 
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle photo messages containing receipts."""
@@ -36,12 +39,12 @@ class ReceiptHandler:
             # Process the receipt
             receipt_data = await self.receipt_service.process_receipt(file_data)
 
-            # Initialize sheets service with user's credentials
+            # Get user's credentials
             credentials = self.google_service.load_credentials(user_id)
-            self.google_service.initialize_sheets_service(credentials)
 
-            # Save to Google Sheets
-            self.google_service.append_receipt(receipt_data)
+            # Save to Google Sheets (will create spreadsheet if needed)
+            self.sheets_service.initialize(credentials)
+            self.sheets_service.append_receipt(receipt_data)
 
             # Send success message
             await self.bot.send_message(

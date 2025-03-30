@@ -34,7 +34,7 @@ class AuthHandler:
         user_id = str(update.effective_user.id)
         if not self.google_service.is_authenticated(user_id):
             await update.message.reply_text(
-                "You are not currently connected to Google. Use /auth to connect your account."
+                "You are not currently connected to Google."
             )
             return
 
@@ -45,7 +45,7 @@ class AuthHandler:
             )
         else:
             await update.message.reply_text(
-                "You are not currently connected to Google. Use /auth to connect your account."
+                "You are not currently connected to Google."
             )
 
     async def handle_oauth_callback(self, code: str, state: str) -> bool:

@@ -1,12 +1,10 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from typing import Dict, Any, List
-from app.config import SPREADSHEET_ID
 
 
 class SheetsService:
     def __init__(self):
-        self.spreadsheet_id = SPREADSHEET_ID
         self.service = None
 
     def initialize(self, credentials: Credentials):
