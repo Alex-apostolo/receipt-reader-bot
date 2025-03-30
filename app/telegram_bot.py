@@ -23,7 +23,7 @@ class TelegramBot:
 
         # Initialize services
         self.google_service = GoogleService()
-        self.receipt_service = ReceiptService()
+        self.receipt_service = ReceiptService(self.google_service)
         self.sheets_service = SheetsService()
 
         # Initialize handlers

@@ -8,3 +8,5 @@ google-api-python-client
 python-dotenv
 pytesseract
 Pillow
+langchain
+langchain-community

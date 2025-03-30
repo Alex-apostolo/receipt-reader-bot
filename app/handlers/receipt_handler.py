@@ -39,7 +39,7 @@ class ReceiptHandler:
 
         try:
             file_data = await file.download_as_bytearray()
-            await self.receipt_service.process_receipt(file_data)
+            await self.receipt_service.process_receipt(file_data, user_id)
 
         except Exception as e:
             print(f"Error processing receipt: {str(e)}")

@@ -1,28 +1,23 @@
 import base64
+import json
 from typing import Dict, Any
 import os
 import openai
 from app.config import OPENAI_API_KEY
+from app.models.receipt import Receipt
+from app.tools.spreadsheet_tool import SpreadsheetTool
+from app.services.google_service import GoogleService
 
 
 class ReceiptService:
-    def __init__(self):
+    def __init__(self, google_service: GoogleService):
         self.temp_dir = "temp_receipts"
         os.makedirs(self.temp_dir, exist_ok=True)
         openai.api_key = OPENAI_API_KEY
+        self.spreadsheet_tool = SpreadsheetTool(google_service)
 
-    async def process_receipt(self, file_data: bytes) -> Dict[str, Any]:
+    async def process_receipt(self, image_data: bytes, user_id: str) -> Receipt:
         """Process receipt data and extract relevant information."""
-        try:
-            receipt_data = await self._extract_receipt_data(file_data)
-            return receipt_data
-
-        except Exception as e:
-            print(f"Error processing receipt: {str(e)}")
-            raise
-
-    async def _extract_receipt_data(self, image_data: bytes) -> Dict[str, Any]:
-        """Extract receipt data using OpenAI's GPT-4o."""
         try:
             # If the input is a file path (string), read it
             if isinstance(image_data, str):
@@ -37,11 +32,15 @@ class ReceiptService:
                 model="gpt-4o",
                 messages=[
                     {
+                        "role": "system",
+                        "content": "You are a receipt processing assistant. Extract information from receipt images and save them using the provided function.",
+                    },
+                    {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Extract the following information from this receipt image: date, merchant name, total amount, items purchased, tax amount, and payment method. Format the response as a JSON object with these keys.",
+                                "text": "Extract the following information from this receipt image: date, merchant name, total amount, items purchased (with prices), tax amount, and payment method. Use the add_receipt function to save the data.",
                             },
                             {
                                 "type": "image_url",
@@ -50,16 +49,27 @@ class ReceiptService:
                                 },
                             },
                         ],
-                    }
+                    },
                 ],
-                response_format={"type": "json_object"},
+                functions=self.spreadsheet_tool.function_schema,
+                function_call={"name": "add_receipt"},
                 max_tokens=500,
             )
 
-            # Parse the response and extract receipt data
-            receipt_data = response.choices[0].message.content
-            return receipt_data
+            # Get the function call arguments
+            function_call = response.choices[0].message.function_call
+            if function_call and function_call.name == "add_receipt":
+                receipt_data = json.loads(function_call.arguments)
+                print("RECEIPT DATA", receipt_data)
+
+                # Save to spreadsheet using the tool
+                if self.spreadsheet_tool and user_id:
+                    self.spreadsheet_tool.add_receipt(receipt_data, user_id)
+
+                return Receipt.from_dict(receipt_data)
+            else:
+                raise ValueError("No valid function call in response")
 
         except Exception as e:
-            print(f"Error extracting receipt data: {str(e)}")
+            print(f"Error processing receipt: {str(e)}")
             raise
