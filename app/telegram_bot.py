@@ -2,53 +2,56 @@ from telegram import Update, Bot
 from telegram.ext import (
     Application,
     ContextTypes,
-    MessageHandler,
-    CommandHandler,
+    MessageHandler as TelegramMessageHandler,
+    CommandHandler as TelegramCommandHandler,
     filters,
 )
 from app.config import TELEGRAM_TOKEN
-from app.llm_parser import extract_receipt_data
+from app.google_auth import GoogleAuth
+from app.handlers.command_handler import CommandHandler
+from app.handlers.message_handler import MessageHandler
+from app.handlers.oauth_handler import OAuthHandler
 
 
 class TelegramBot:
     def __init__(self):
         self.app = Application.builder().token(TELEGRAM_TOKEN).build()
+        self.google_auth = GoogleAuth()
+        self.bot = self.app.bot
+
+        # Initialize handlers
+        self.command_handler = CommandHandler(self.bot, self.google_auth)
+        self.message_handler = MessageHandler(self.bot, self.google_auth)
+        self.oauth_handler = OAuthHandler(self.bot, self.google_auth)
+
         self._register_handlers()
 
     def _register_handlers(self):
         """Register all command and message handlers."""
-        self.app.add_handler(CommandHandler("start", self._start_command))
+        # Command handlers
         self.app.add_handler(
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self._reply_working)
+            TelegramCommandHandler("start", self.command_handler.handle_start)
         )
-        self.app.add_handler(MessageHandler(filters.PHOTO, self._handle_image))
-
-    async def _start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /start command."""
-        await update.message.reply_text(
-            "Welcome to Receipt Reader Bot! 📸\n\n"
-            "Send me a photo of your receipt, and I'll extract the information "
-            "and save it to your Google Sheet."
+        self.app.add_handler(
+            TelegramCommandHandler("auth", self.command_handler.handle_auth)
+        )
+        self.app.add_handler(
+            TelegramCommandHandler("logout", self.command_handler.handle_logout)
         )
 
-    async def _reply_working(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle text messages."""
-        await update.message.reply_text("Please send me a photo of your receipt 📸")
+        # Message handlers
+        self.app.add_handler(
+            TelegramMessageHandler(
+                filters.TEXT & ~filters.COMMAND, self.message_handler.handle_text
+            )
+        )
+        self.app.add_handler(
+            TelegramMessageHandler(filters.PHOTO, self.message_handler.handle_photo)
+        )
 
-    async def _handle_image(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle receipt image uploads."""
-        user_id = str(update.effective_user.id)
-        photo = await update.message.photo[-1].get_file()
-
-        # Get the file data as bytes
-        file_data = await photo.download_as_bytearray()
-
-        # Send directly to OpenAI
-        await update.message.reply_text("Processing your receipt... 🔍")
-        receipt_data = extract_receipt_data(file_data)
-
-        # Clean up the response and send it back
-        await update.message.reply_text(f"Receipt processed: {receipt_data}")
+    async def handle_oauth_callback(self, code: str, state: str):
+        """Handle the OAuth callback with the authorization code."""
+        return await self.oauth_handler.handle_callback(code, state)
 
     async def initialize(self):
         """Initialize the bot application."""
@@ -61,8 +64,3 @@ class TelegramBot:
     async def process_update(self, update: Update):
         """Process an incoming update."""
         await self.app.process_update(update)
-
-    @property
-    def bot(self) -> Bot:
-        """Get the bot instance."""
-        return self.app.bot

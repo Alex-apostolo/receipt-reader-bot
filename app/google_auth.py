@@ -23,13 +23,13 @@ class GoogleAuth:
             }
         }
         self.redirect_uri = GOOGLE_REDIRECT_URI
-        self.flow = Flow.from_client_config(self.client_config)
+        self.flow = Flow.from_client_config(self.client_config, self.SCOPES)
         self.flow.redirect_uri = self.redirect_uri
 
-    def get_authorization_url(self) -> str:
+    def get_authorization_url(self, state: str = None) -> str:
         """Generate the authorization URL for Google OAuth."""
         auth_url, _ = self.flow.authorization_url(
-            access_type="offline", include_granted_scopes="true"
+            access_type="offline", include_granted_scopes="true", state=state
         )
         return auth_url
 
