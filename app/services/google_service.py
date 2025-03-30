@@ -1,13 +1,18 @@
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 import os
 import json
-from typing import Optional
-from .config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+from typing import Optional, Dict, Any, List
+from app.config import (
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI,
+)
 
 
-class GoogleAuth:
+class GoogleService:
     # If modifying these scopes, delete the file token.json.
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -25,6 +30,8 @@ class GoogleAuth:
         self.redirect_uri = GOOGLE_REDIRECT_URI
         self.flow = Flow.from_client_config(self.client_config, self.SCOPES)
         self.flow.redirect_uri = self.redirect_uri
+        # self.spreadsheet_id = SPREADSHEET_ID
+        self.sheets_service = None
 
     def get_authorization_url(self, state: str = None) -> str:
         """Generate the authorization URL for Google OAuth."""
@@ -84,3 +91,11 @@ class GoogleAuth:
     def is_authenticated(self, user_id: str) -> bool:
         """Check if a user is authenticated with Google."""
         return self.load_credentials(user_id) is not None
+
+    def revoke_access(self, user_id: str) -> bool:
+        """Revoke Google access for a user."""
+        creds_path = os.path.join("user_credentials", f"{user_id}_google_creds.json")
+        if os.path.exists(creds_path):
+            os.remove(creds_path)
+            return True
+        return False
