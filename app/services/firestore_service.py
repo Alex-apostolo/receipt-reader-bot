@@ -8,7 +8,10 @@ class FirestoreService:
     def __init__(self):
         # Initialize Firebase Admin SDK if not already initialized
         if not firebase_admin._apps:
-            firebase_admin.initialize_app()
+            cred = credentials.Certificate(
+                "receipt-reader-bot-firebase-adminsdk-fbsvc-77091402e7.json"
+            )
+            firebase_admin.initialize_app(cred)
         self.db = firestore.client()
 
     def save_user_credentials(self, user_id: str, credentials: Credentials):
