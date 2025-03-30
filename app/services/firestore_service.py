@@ -1,3 +1,4 @@
+import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from typing import Optional, Dict, Any
@@ -8,9 +9,7 @@ class FirestoreService:
     def __init__(self):
         # Initialize Firebase Admin SDK if not already initialized
         if not firebase_admin._apps:
-            cred = credentials.Certificate(
-                "receipt-reader-bot-firebase-adminsdk-fbsvc-77091402e7.json"
-            )
+            cred = credentials.Certificate("firebase_admin_credentials.json")
             firebase_admin.initialize_app(cred)
         self.db = firestore.client()
 
