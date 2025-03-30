@@ -38,25 +38,14 @@ class GoogleService:
     def get_authorization_url(self, state: str = None) -> str:
         """Generate the authorization URL for Google OAuth."""
         auth_url, _ = self.flow.authorization_url(
-            access_type="offline",
-            include_granted_scopes="true",
-            state=state,
-            prompt="consent",  # Force consent screen to get refresh token
+            access_type="offline", include_granted_scopes="true", state=state
         )
         return auth_url
 
     def get_credentials_from_code(self, code: str) -> Credentials:
         """Exchange authorization code for credentials."""
         self.flow.fetch_token(code=code)
-        credentials = self.flow.credentials
-
-        # Verify we got a refresh token
-        if not credentials.refresh_token:
-            raise ValueError(
-                "No refresh token received. Please try authenticating again."
-            )
-
-        return credentials
+        return self.flow.credentials
 
     def save_credentials(self, credentials: Credentials, user_id: str):
         """Save credentials to a file."""
@@ -86,20 +75,6 @@ class GoogleService:
         with open(creds_path) as token:
             creds_data = json.load(token)
 
-        # Check if we have all required fields
-        required_fields = [
-            "token",
-            "refresh_token",
-            "token_uri",
-            "client_id",
-            "client_secret",
-            "scopes",
-        ]
-        if not all(field in creds_data for field in required_fields):
-            print("Missing required credential fields. Forcing re-authentication.")
-            os.remove(creds_path)  # Delete invalid credentials
-            return None
-
         credentials = Credentials(
             token=creds_data["token"],
             refresh_token=creds_data["refresh_token"],
@@ -110,13 +85,8 @@ class GoogleService:
         )
 
         if credentials and credentials.expired and credentials.refresh_token:
-            try:
-                credentials.refresh(Request())
-                self.save_credentials(credentials, user_id)
-            except Exception as e:
-                print(f"Error refreshing credentials: {str(e)}")
-                os.remove(creds_path)  # Delete invalid credentials
-                return None
+            credentials.refresh(Request())
+            self.save_credentials(credentials, user_id)
 
         return credentials
 
