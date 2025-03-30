@@ -82,7 +82,7 @@ class SpreadsheetTool:
 
             # Create new sheets service instance with credentials
             self.sheets_service = SheetsService()
-            self.sheets_service.initialize(credentials)
+            self.sheets_service.initialize(credentials, user_id)
 
             # Append receipt to spreadsheet
             self.sheets_service.append_receipt(receipt)

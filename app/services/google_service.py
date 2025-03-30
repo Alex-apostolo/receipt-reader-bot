@@ -9,6 +9,7 @@ from app.config import (
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
 )
+from app.services.firestore_service import FirestoreService
 
 
 class GoogleService:
@@ -34,6 +35,7 @@ class GoogleService:
         self.flow.redirect_uri = self.redirect_uri
         # self.spreadsheet_id = SPREADSHEET_ID
         self.sheets_service = None
+        self.firestore_service = FirestoreService()
 
     def get_authorization_url(self, state: str = None) -> str:
         """Generate the authorization URL for Google OAuth."""
@@ -48,34 +50,16 @@ class GoogleService:
         return self.flow.credentials
 
     def save_credentials(self, credentials: Credentials, user_id: str):
-        """Save credentials to a file."""
-        creds_dir = "user_credentials"
-        os.makedirs(creds_dir, exist_ok=True)
-
-        creds_data = {
-            "token": credentials.token,
-            "refresh_token": credentials.refresh_token,
-            "token_uri": credentials.token_uri,
-            "client_id": credentials.client_id,
-            "client_secret": credentials.client_secret,
-            "scopes": credentials.scopes,
-        }
-
-        with open(
-            os.path.join(creds_dir, f"{user_id}_google_creds.json"), "w"
-        ) as token:
-            json.dump(creds_data, token)
+        """Save credentials to Firestore."""
+        self.firestore_service.save_user_credentials(user_id, credentials)
 
     def load_credentials(self, user_id: str) -> Optional[Credentials]:
-        """Load credentials from file."""
-        creds_path = os.path.join("user_credentials", f"{user_id}_google_creds.json")
-        if not os.path.exists(creds_path):
+        """Load credentials from Firestore."""
+        creds_data = self.firestore_service.get_user_credentials(user_id)
+        if not creds_data:
             return None
 
-        with open(creds_path) as token:
-            creds_data = json.load(token)
-
-        credentials = Credentials(
+        return Credentials(
             token=creds_data["token"],
             refresh_token=creds_data["refresh_token"],
             token_uri=creds_data["token_uri"],
@@ -84,20 +68,10 @@ class GoogleService:
             scopes=creds_data["scopes"],
         )
 
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-            self.save_credentials(credentials, user_id)
-
-        return credentials
-
     def is_authenticated(self, user_id: str) -> bool:
-        """Check if a user is authenticated with Google."""
+        """Check if user is authenticated."""
         return self.load_credentials(user_id) is not None
 
-    def revoke_access(self, user_id: str) -> bool:
-        """Revoke Google access for a user."""
-        creds_path = os.path.join("user_credentials", f"{user_id}_google_creds.json")
-        if os.path.exists(creds_path):
-            os.remove(creds_path)
-            return True
-        return False
+    def revoke_credentials(self, user_id: str):
+        """Revoke user's credentials."""
+        self.firestore_service.delete_user_data(user_id)

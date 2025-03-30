@@ -10,3 +10,4 @@ pytesseract
 Pillow
 langchain
 langchain-community
+firebase-admin

@@ -1,17 +1,16 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
 import os
-import json
 from typing import Optional
 from app.models.receipt import Receipt
+from app.services.firestore_service import FirestoreService
 
 
 class SheetsService:
     def __init__(self):
         self.service = None
         self.spreadsheet_id = None
-        self.spreadsheet_file = "spreadsheet_id.json"
+        self.firestore_service = FirestoreService()
 
     def get_spreadsheet_url(self) -> Optional[str]:
         """Get the URL of the spreadsheet."""
@@ -19,19 +18,17 @@ class SheetsService:
             return None
         return f"https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}"
 
-    def initialize(self, credentials: Credentials):
+    def initialize(self, credentials: Credentials, user_id: str):
         """Initialize the Google Sheets service with credentials."""
         self.service = build("sheets", "v4", credentials=credentials)
-        self._load_or_create_spreadsheet()
+        self._load_or_create_spreadsheet(user_id)
 
-    def _load_or_create_spreadsheet(self):
+    def _load_or_create_spreadsheet(self, user_id: str):
         """Load existing spreadsheet ID or create a new one."""
-        if os.path.exists(self.spreadsheet_file):
-            with open(self.spreadsheet_file, "r") as f:
-                data = json.load(f)
-                self.spreadsheet_id = data.get("spreadsheet_id")
-                if self.spreadsheet_id:
-                    return
+        # Try to load existing spreadsheet ID from Firestore
+        self.spreadsheet_id = self.firestore_service.get_spreadsheet_id(user_id)
+        if self.spreadsheet_id:
+            return
 
         # Create new spreadsheet if none exists
         spreadsheet = {
@@ -54,9 +51,8 @@ class SheetsService:
 
         self.spreadsheet_id = spreadsheet.get("spreadsheetId")
 
-        # Save spreadsheet ID
-        with open(self.spreadsheet_file, "w") as f:
-            json.dump({"spreadsheet_id": self.spreadsheet_id}, f)
+        # Save spreadsheet ID to Firestore
+        self.firestore_service.save_spreadsheet_id(user_id, self.spreadsheet_id)
 
         # Set up headers
         headers = [["Date", "Merchant", "Total", "Items", "Tax", "Payment Method"]]
@@ -79,6 +75,5 @@ class SheetsService:
             spreadsheetId=self.spreadsheet_id,
             range="Receipts!A:F",
             valueInputOption="RAW",
-            insertDataOption="INSERT_ROWS",
             body=body,
         ).execute()
