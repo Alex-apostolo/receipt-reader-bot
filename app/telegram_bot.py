@@ -29,7 +29,7 @@ class TelegramBot:
         # Initialize handlers
         self.auth_handler = AuthHandler(self.bot, self.google_service)
         self.receipt_handler = ReceiptHandler(
-            self.bot, self.google_service, self.receipt_service, self.sheets_service
+            self.bot, self.google_service, self.receipt_service
         )
         self.message_handler = MessageHandler(self.bot, self.google_service)
         self.command_handler = CommandHandler(self.bot, self.google_service)

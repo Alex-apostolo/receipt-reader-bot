@@ -16,12 +16,13 @@ class ReceiptService:
         try:
             receipt_data = await self._extract_receipt_data(file_data)
             return receipt_data
+
         except Exception as e:
             print(f"Error processing receipt: {str(e)}")
             raise
 
     async def _extract_receipt_data(self, image_data: bytes) -> Dict[str, Any]:
-        """Extract receipt data using OpenAI's GPT-4 Vision model."""
+        """Extract receipt data using OpenAI's GPT-4o."""
         try:
             # If the input is a file path (string), read it
             if isinstance(image_data, str):
@@ -51,6 +52,7 @@ class ReceiptService:
                         ],
                     }
                 ],
+                response_format={"type": "json_object"},
                 max_tokens=500,
             )
 
@@ -61,12 +63,3 @@ class ReceiptService:
         except Exception as e:
             print(f"Error extracting receipt data: {str(e)}")
             raise
-
-    def get_temp_path(self, user_id: str) -> str:
-        """Get the temporary file path for a user's receipt."""
-        return os.path.join(self.temp_dir, f"temp_{user_id}.jpg")
-
-    def cleanup_temp_file(self, photo_path: str):
-        """Clean up temporary receipt file."""
-        if os.path.exists(photo_path):
-            os.remove(photo_path)
