@@ -14,7 +14,7 @@ class CommandHandler:
         """Handle the /start command."""
         user_id = str(update.effective_user.id)
         if not self.google_service.is_authenticated(user_id):
-            reply_markup = create_auth_keyboard(user_id)
+            reply_markup = create_auth_keyboard(user_id, self.google_service)
             await update.message.reply_text(
                 "Welcome to Receipt Reader Bot! 📸\n\n"
                 "To get started, please connect your Google account first:",

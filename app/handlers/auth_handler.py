@@ -9,24 +9,6 @@ class AuthHandler:
         self.bot = bot
         self.google_service = google_service
 
-    async def handle_auth_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ):
-        """Handle the /auth command to start Google OAuth flow."""
-        user_id = str(update.effective_user.id)
-        if self.google_service.is_authenticated(user_id):
-            await update.message.reply_text(
-                "You are already authenticated with Google! ✅\n"
-                "Your receipts will be saved to your Google Sheet."
-            )
-            return
-
-        reply_markup = create_auth_keyboard(user_id)
-        await update.message.reply_text(
-            "Please connect your Google account to save receipts to your Google Sheet:",
-            reply_markup=reply_markup,
-        )
-
     async def handle_logout_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
@@ -41,7 +23,6 @@ class AuthHandler:
         if self.google_service.revoke_access(user_id):
             await update.message.reply_text(
                 "Successfully disconnected from Google! ✅\n"
-                "Use /auth to connect again when you want to save receipts to your Google Sheet."
             )
         else:
             await update.message.reply_text(

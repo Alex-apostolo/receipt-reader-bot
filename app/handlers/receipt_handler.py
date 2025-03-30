@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from app.services.google_service import GoogleService
 from app.services.receipt_service import ReceiptService
 from app.services.sheets_service import SheetsService
+from app.utils.create_auth_keyboard import create_auth_keyboard
 
 
 class ReceiptHandler:
@@ -22,9 +23,11 @@ class ReceiptHandler:
         """Handle photo messages containing receipts."""
         user_id = str(update.effective_user.id)
         if not self.google_service.is_authenticated(user_id):
+            reply_markup = create_auth_keyboard(user_id, self.google_service)
             await self.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Please authenticate with Google first using the /auth command.",
+                text="Please connect your Google account first:",
+                reply_markup=reply_markup,
             )
             return
 

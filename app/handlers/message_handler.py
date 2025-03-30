@@ -1,7 +1,6 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, MessageHandler, filters
 from app.services.google_service import GoogleService
-from app.services.receipt_service import ReceiptService
 from app.utils.create_auth_keyboard import create_auth_keyboard
 
 
@@ -15,19 +14,10 @@ class MessageHandler:
         self.google_service = google_service
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle text messages."""
-        user_id = str(update.effective_user.id)
-        print(f"User ID: {user_id}")
-        if not self.google_service.is_authenticated(user_id):
-            reply_markup = create_auth_keyboard(user_id, self.google_service)
-            await self.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="Please authenticate with Google first using the button below.",
-                reply_markup=reply_markup,
-            )
-            return
-
+        """Handle text messages by informing users that the bot only handles photos."""
         await self.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Please send me a photo of your receipt.",
+            text="I can only process receipt photos! 📸\n\n"
+            "Please send me a photo of your receipt, and I'll extract the information "
+            "and save it to your Google Sheet.\n\n",
         )

@@ -6,6 +6,7 @@ from telegram.ext import (
     filters,
 )
 from app.config import TELEGRAM_TOKEN
+from app.handlers.command_handler import CommandHandler
 from app.services.google_service import GoogleService
 from app.services.receipt_service import ReceiptService
 from app.handlers.auth_handler import AuthHandler
@@ -31,6 +32,7 @@ class TelegramBot:
             self.bot, self.google_service, self.receipt_service, self.sheets_service
         )
         self.message_handler = MessageHandler(self.bot, self.google_service)
+        self.command_handler = CommandHandler(self.bot, self.google_service)
 
         self._register_handlers()
 
@@ -38,10 +40,7 @@ class TelegramBot:
         """Register all command and message handlers."""
         # Command handlers
         self.app.add_handler(
-            TelegramCommandHandler("start", self.message_handler.handle_text)
-        )
-        self.app.add_handler(
-            TelegramCommandHandler("auth", self.auth_handler.handle_auth_command)
+            TelegramCommandHandler("start", self.command_handler.handle_start)
         )
         self.app.add_handler(
             TelegramCommandHandler("logout", self.auth_handler.handle_logout_command)
