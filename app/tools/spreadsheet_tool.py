@@ -7,7 +7,7 @@ from app.services.google_service import GoogleService
 class SpreadsheetTool:
     def __init__(self, google_service: GoogleService):
         self.google_service = google_service
-        self.sheets_service = SheetsService()
+        self.sheets_service = None
 
     @property
     def function_schema(self) -> List[Dict[str, Any]]:
@@ -76,8 +76,12 @@ class SpreadsheetTool:
 
             # Get user's credentials
             credentials = self.google_service.load_credentials(user_id)
+            if not credentials:
+                print("No valid credentials found for user")
+                return False
 
-            # Initialize sheets service with credentials
+            # Create new sheets service instance with credentials
+            self.sheets_service = SheetsService()
             self.sheets_service.initialize(credentials)
 
             # Append receipt to spreadsheet

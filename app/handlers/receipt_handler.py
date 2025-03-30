@@ -1,5 +1,5 @@
 import json
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from app.services.google_service import GoogleService
 from app.services.receipt_service import ReceiptService
@@ -39,7 +39,33 @@ class ReceiptHandler:
 
         try:
             file_data = await file.download_as_bytearray()
-            await self.receipt_service.process_receipt(file_data, user_id)
+            spreadsheet_url = await self.receipt_service.process_receipt(
+                file_data, user_id
+            )
+
+            if spreadsheet_url:
+                # Create keyboard with spreadsheet link
+                # Create keyboard with spreadsheet link
+                keyboard = [
+                    [
+                        InlineKeyboardButton(
+                            "View Spreadsheet 📊",
+                            url=spreadsheet_url,
+                        )
+                    ]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await self.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="✅ Successfully added receipt to your Google Sheet! 🎉\nClick below to view your spreadsheet:",
+                    reply_markup=reply_markup,
+                )
+            else:
+                await self.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Sorry, I couldn't process your receipt. Please try again with a clearer photo.",
+                )
 
         except Exception as e:
             print(f"Error processing receipt: {str(e)}")
